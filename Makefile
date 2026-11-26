@@ -15,4 +15,3 @@ preview:
 
 release-plan:
 	$(PYTHON) -m postpub build --target release --output build/release
-
