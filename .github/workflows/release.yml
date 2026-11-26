@@ -79,4 +79,3 @@ jobs:
           path: build/delivery/
           if-no-files-found: ignore
           retention-days: 14
-
