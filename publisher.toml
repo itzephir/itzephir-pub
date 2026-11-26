@@ -1,0 +1,5 @@
+posts_dir = "posts"
+state_branch = "telegram-state"
+release_channel = "@itzephir_pub"
+preview_channel_title = "itzephir_pub_nightly"
+

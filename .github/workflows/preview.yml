@@ -1,0 +1,51 @@
+name: Posts / Preview
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Validate publisher and posts
+        run: |
+          python -m unittest discover -s tests -v
+          python -m postpub check
+      - name: Build changed-post previews
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          args=(build --target preview --output build/preview)
+          if [[ -n "$BASE_SHA" ]]; then
+            base=$(git merge-base "$BASE_SHA" HEAD)
+            args+=(--base-ref "$base")
+          fi
+          python -m postpub "${args[@]}"
+          cat build/preview/preview.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: post-preview-${{ github.event.pull_request.number || github.run_id }}
+          path: build/preview/
+          if-no-files-found: error
+          retention-days: 14
+
